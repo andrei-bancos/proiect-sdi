@@ -13,6 +13,7 @@ public class Client {
     private CallbackConnection connection;
     private NewsList newsList;
     private Gson gson;
+    private boolean isConnected = false;
 
     public Client(String clientId, String brokerUrl) {
         this.clientId = clientId;
@@ -56,6 +57,10 @@ public class Client {
                 @Override
                 public void onSuccess(Void value) {
                     System.out.println(clientId + " conectat la broker.");
+                    isConnected = true;
+                    synchronized (Client.this) {
+                        Client.this.notifyAll();
+                    }
                 }
 
                 @Override
@@ -98,6 +103,16 @@ public class Client {
     }
 
     public void runInteractiveConsole() {
+        synchronized (this) {
+            while (!isConnected) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
         Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("\nOptiuni:");

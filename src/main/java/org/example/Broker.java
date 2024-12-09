@@ -1,10 +1,9 @@
 package org.example;
 
 public class Broker {
-    private String brokerUrl;
+    private String brokerUrl = "tcp://localhost:1883";
 
-    public Broker(String brokerUrl) {
-        this.brokerUrl = brokerUrl;
+    public Broker() {
         System.out.println("Broker running at " + brokerUrl);
     }
 

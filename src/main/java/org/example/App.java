@@ -1,8 +1,8 @@
 package org.example;
 public class App {
     public static void main(String[] args) {
-        String brokerUrl = "tcp://localhost:1883";
-        Client client = new Client("ConsoleClient", brokerUrl);
+        Broker broker= new Broker();
+        Client client = new Client("ConsoleClient", broker.getBrokerUrl());
         client.runInteractiveConsole();
     }
 }
