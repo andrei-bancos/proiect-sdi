@@ -14,6 +14,7 @@ public class Client {
     private NewsList newsList;
     private Gson gson;
     private boolean isConnected = false;
+    private boolean processRunning = false;
 
     public Client(String clientId, String brokerUrl) {
         this.clientId = clientId;
@@ -43,7 +44,7 @@ public class Client {
                     String message = new String(payload.toByteArray());
                     News news = gson.fromJson(message, News.class);
                     newsList.addNews(news);
-                    //System.out.println(clientId + " stiri primite de la " + topic + ": " + news);
+                    System.out.println(clientId + " stiri primite de la " + topic + ": " + news);
                     ack.run();
                 }
 
@@ -77,12 +78,22 @@ public class Client {
         this.connection.subscribe(new Topic[]{new Topic(topic, QoS.AT_LEAST_ONCE)}, new Callback<byte[]>() {
             @Override
             public void onSuccess(byte[] value) {
-                //System.out.println(clientId + " abonat la topic: " + topic);
+                System.out.println(clientId + " abonat la topic: " + topic);
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
             }
 
             @Override
             public void onFailure(Throwable value) {
                 System.out.println(clientId + " esuare la abonare: " + value.getMessage());
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
             }
         });
     }
@@ -92,12 +103,22 @@ public class Client {
         this.connection.publish(topic, message.getBytes(), QoS.AT_LEAST_ONCE, false, new Callback<Void>() {
             @Override
             public void onSuccess(Void value) {
-                //System.out.println("\n"+clientId + " stire publicata: " + message);
+                System.out.println(clientId + " stire publicata: " + message);
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
             }
 
             @Override
             public void onFailure(Throwable value) {
                 System.out.println(clientId + " eroare la publicare: " + value.getMessage());
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
             }
         });
     }
@@ -115,6 +136,15 @@ public class Client {
 
         Scanner scanner = new Scanner(System.in);
         while (true) {
+            synchronized (this) {
+                if (processRunning) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
             System.out.println("\nOptiuni:");
             System.out.println("1. Abonare la topic");
             System.out.println("2. Publicare stire noua");
@@ -126,12 +156,13 @@ public class Client {
 
             switch (choice) {
                 case 1 -> {
+                    processRunning = true;
                     System.out.print("Nume topic: ");
                     String topic = scanner.nextLine();
                     subscribe(topic);
-                    System.out.println("\n" + clientId + " abonat la topic: " + topic);
                 }
                 case 2 -> {
+                    processRunning = true;
                     System.out.print("Nume topic: ");
                     String topic = scanner.nextLine();
                     System.out.print("Introdu titlu stire: ");
@@ -139,8 +170,6 @@ public class Client {
                     System.out.print("Introdu continutul stirii: ");
                     String content = scanner.nextLine();
                     publish(topic, new News(title, content));
-                    System.out.println("\n" + clientId + " stire publicata: " + "{\"title\":\"" + title + "\",\"content\":\"" + content + "\"}");
-
                 }
                 case 3 -> newsList.printAllNews();
                 case 4 -> {
