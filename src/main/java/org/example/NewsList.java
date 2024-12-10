@@ -19,7 +19,7 @@ public class NewsList {
     }
 
     public void printAllNews() {
-        System.out.println("Listă news:");
+        System.out.println("Listă știri:");
         for (News news : newsList) {
             System.out.println(news);
         }

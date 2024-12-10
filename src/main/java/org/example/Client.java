@@ -43,7 +43,7 @@ public class Client {
                     String message = new String(payload.toByteArray());
                     News news = gson.fromJson(message, News.class);
                     newsList.addNews(news);
-                    System.out.println(clientId + " stiri primite de la " + topic + ": " + news);
+                    //System.out.println(clientId + " stiri primite de la " + topic + ": " + news);
                     ack.run();
                 }
 
@@ -77,7 +77,7 @@ public class Client {
         this.connection.subscribe(new Topic[]{new Topic(topic, QoS.AT_LEAST_ONCE)}, new Callback<byte[]>() {
             @Override
             public void onSuccess(byte[] value) {
-                System.out.println(clientId + " abonat la topic: " + topic);
+                //System.out.println(clientId + " abonat la topic: " + topic);
             }
 
             @Override
@@ -92,7 +92,7 @@ public class Client {
         this.connection.publish(topic, message.getBytes(), QoS.AT_LEAST_ONCE, false, new Callback<Void>() {
             @Override
             public void onSuccess(Void value) {
-                System.out.println(clientId + " stire publicata: " + message);
+                //System.out.println("\n"+clientId + " stire publicata: " + message);
             }
 
             @Override
@@ -129,6 +129,7 @@ public class Client {
                     System.out.print("Nume topic: ");
                     String topic = scanner.nextLine();
                     subscribe(topic);
+                    System.out.println("\n" + clientId + " abonat la topic: " + topic);
                 }
                 case 2 -> {
                     System.out.print("Nume topic: ");
@@ -138,6 +139,8 @@ public class Client {
                     System.out.print("Introdu continutul stirii: ");
                     String content = scanner.nextLine();
                     publish(topic, new News(title, content));
+                    System.out.println("\n" + clientId + " stire publicata: " + "{\"title\":\"" + title + "\",\"content\":\"" + content + "\"}");
+
                 }
                 case 3 -> newsList.printAllNews();
                 case 4 -> {
