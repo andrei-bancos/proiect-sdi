@@ -3,10 +3,12 @@ package org.example;
 public class News {
     private String title;
     private String content;
+    private String topic;
 
-    public News(String title, String content) {
+    public News(String title, String content, String topic) {
         this.title = title;
         this.content = content;
+        this.topic = topic;
     }
 
     public String getTitle() {
@@ -17,8 +19,12 @@ public class News {
         return content;
     }
 
+    public String getTopic() {
+        return topic;
+    }
+
     @Override
     public String toString() {
-        return "Title: " + title + ", Content: " + content;
+        return "Title: " + title + ", Topic: " + topic + ", Content: " + content;
     }
 }

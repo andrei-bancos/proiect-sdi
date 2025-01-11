@@ -4,6 +4,7 @@ import org.fusesource.hawtbuf.Buffer;
 import org.fusesource.hawtbuf.UTF8Buffer;
 import org.fusesource.mqtt.client.*;
 import com.google.gson.Gson;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -19,33 +20,37 @@ public class Client {
     private Gson gson;
     private boolean isConnected = false;
     private boolean processRunning = false;
+    private Broker broker; // Referință la broker
     private static final String LOG_FILE = "client_log.txt";
 
-    public Client(String clientId, String brokerUrl) {
+    public Client(String clientId, String brokerUrl, Broker broker) {
         this.clientId = clientId;
+        this.broker = broker; // Inițializare broker
         this.newsList = new NewsList();
         this.gson = new Gson();
 
+        setupConnection(brokerUrl);
+    }
+
+    private void setupConnection(String brokerUrl) {
         mqtt = new MQTT();
         try {
             mqtt.setHost(brokerUrl);
             mqtt.setClientId(clientId);
             this.connection = mqtt.callbackConnection();
 
-            // Setare listener
             this.connection.listener(new Listener() {
                 @Override
                 public void onConnected() {
                     System.out.println(clientId + " conectat.");
                     logToFile(clientId + " s-a conectat la broker.");
-
                 }
 
                 @Override
                 public void onDisconnected() {
                     System.out.println(clientId + " deconectat.");
                     logToFile(clientId + " s-a deconectat de la broker.");
-
+                    reconnect();
                 }
 
                 @Override
@@ -53,8 +58,11 @@ public class Client {
                     String message = new String(payload.toByteArray());
                     News news = gson.fromJson(message, News.class);
                     newsList.addNews(news);
-                    System.out.println(clientId + " stiri primite de la " + topic + ": " + news);
-                    logToFile(clientId + " a primit stire de la topic " + topic + ": " + news);
+                    System.out.println("\n|");
+                    System.out.println("| Stire primită de la topicul " + topic + ": " + news);
+                    System.out.println("|\n");
+                    logToFile(clientId + " a primit stire de la topicul " + topic + ": " + news);
+
                     ack.run();
                 }
 
@@ -62,6 +70,7 @@ public class Client {
                 public void onFailure(Throwable value) {
                     System.out.println(clientId + " conexiune esuata: " + value.getMessage());
                     logToFile(clientId + " conexiune esuata: " + value.getMessage());
+                    reconnect();
                 }
             });
 
@@ -81,6 +90,7 @@ public class Client {
                 public void onFailure(Throwable value) {
                     System.out.println(clientId + " eroare la conectare: " + value.getMessage());
                     logToFile(clientId + " eroare la conectare: " + value.getMessage());
+                    reconnect();
                 }
             });
         } catch (Exception e) {
@@ -88,11 +98,23 @@ public class Client {
         }
     }
 
+    private void reconnect() {
+        synchronized (this) {
+            isConnected = false;
+        }
+        String nextBrokerUrl = broker.getNextBrokerUrl();
+        System.out.println(clientId + " reconectare la: " + nextBrokerUrl);
+        setupConnection(nextBrokerUrl);
+    }
+
     public void subscribe(String topic) {
         this.connection.subscribe(new Topic[]{new Topic(topic, QoS.AT_LEAST_ONCE)}, new Callback<byte[]>() {
             @Override
             public void onSuccess(byte[] value) {
-                System.out.println(clientId + " abonat la topic: " + topic);
+                System.out.println("\n|");
+                System.out.println("| " + clientId + " abonat la topic: " + topic);
+                System.out.println("|\n");
+
                 logToFile(clientId + " s-a abonat la topic: " + topic);
 
                 processRunning = false;
@@ -119,7 +141,10 @@ public class Client {
         this.connection.publish(topic, message.getBytes(), QoS.AT_LEAST_ONCE, false, new Callback<Void>() {
             @Override
             public void onSuccess(Void value) {
-                System.out.println(clientId + " stire publicata: " + message);
+                System.out.println("\n|");
+                System.out.println("| " + clientId + " stire publicata: " + message);
+                System.out.println("|\n");
+
                 logToFile(clientId + " a publicat o stire pe topic " + topic + ": " + message);
 
                 processRunning = false;
@@ -170,12 +195,12 @@ public class Client {
             System.out.println("4. Exit");
             System.out.print("Alege o optiune: ");
             int choice = scanner.nextInt();
-            scanner.nextLine(); // Consumă newline
+            scanner.nextLine();
 
             switch (choice) {
                 case 1 -> {
                     processRunning = true;
-                    System.out.println("Selectează un topic:");
+                    System.out.println("\nSelectează un topic:");
                     System.out.println("1. " + Topics.BLOCKCHAIN);
                     System.out.println("2. " + Topics.AI);
                     System.out.println("3. " + Topics.METAVERSE);
@@ -200,14 +225,14 @@ public class Client {
                 }
                 case 2 -> {
                     processRunning = true;
-                    System.out.println("Selectează un topic:");
+                    System.out.println("\nSelectează un topic:");
                     System.out.println("1. " + Topics.BLOCKCHAIN);
                     System.out.println("2. " + Topics.AI);
                     System.out.println("3. " + Topics.METAVERSE);
                     System.out.println("4. " + Topics.AUTONOMOUS_CARS);
                     System.out.print("Alegerea ta: ");
                     int topicChoice = scanner.nextInt();
-                    scanner.nextLine(); // Consumă newline
+                    scanner.nextLine();
 
                     String topic = switch (topicChoice) {
                         case 1 -> Topics.BLOCKCHAIN;
@@ -222,7 +247,7 @@ public class Client {
                         String title = scanner.nextLine();
                         System.out.print("Introdu continutul stirii: ");
                         String content = scanner.nextLine();
-                        publish(topic, new News(title, content));
+                        publish(topic, new News(title, content, topic));
                     } else {
                         System.out.println("Alegere invalidă!");
                     }
@@ -236,6 +261,7 @@ public class Client {
             }
         }
     }
+
     private void logToFile(String message) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE, true))) {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -245,7 +271,6 @@ public class Client {
             System.err.println("Eroare la scrierea în fișierul de log: " + e.getMessage());
         }
     }
-
 
     public void disconnect() {
         this.connection.disconnect(new Callback<Void>() {

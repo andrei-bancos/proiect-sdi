@@ -19,9 +19,11 @@ public class NewsList {
     }
 
     public void printAllNews() {
-        System.out.println("Listă știri:");
+        System.out.println("\n|");
+        System.out.println("| Listă știri:");
         for (News news : newsList) {
-            System.out.println(news);
+            System.out.println("| " + news);
         }
+        System.out.println("|\n");
     }
 }
