@@ -18,11 +18,13 @@ public class NewsList {
         return newsList;
     }
 
-    public void printAllNews() {
+    public void printAllNews(String topic) {
         System.out.println("\n|");
         System.out.println("| Listă știri:");
         for (News news : newsList) {
-            System.out.println("| " + news);
+            if(news.getTopic().equals(topic)) {
+                System.out.println("| " + news);
+            }
         }
         System.out.println("|\n");
     }

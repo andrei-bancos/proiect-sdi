@@ -267,7 +267,27 @@ public class Client {
                         System.out.println("\n| Alegere invalidă!");
                     }
                 }
-                case 3 -> newsList.printAllNews();
+                case 3 -> {
+                    processRunning = true;
+                    System.out.println("\nSelectează un topic pentru vizualizarea știrilor:");
+                    System.out.println("1. " + Topics.BLOCKCHAIN);
+                    System.out.println("2. " + Topics.AI);
+                    System.out.println("3. " + Topics.METAVERSE);
+                    System.out.println("4. " + Topics.AUTONOMOUS_CARS);
+                    System.out.print("Alegerea ta: ");
+                    int topicChoice = scanner.nextInt();
+                    scanner.nextLine();
+
+                    String query = switch (topicChoice) {
+                        case 1 -> Topics.BLOCKCHAIN;
+                        case 2 -> Topics.AI;
+                        case 3 -> Topics.METAVERSE;
+                        case 4 -> Topics.AUTONOMOUS_CARS;
+                        default -> null;
+                    };
+                    newsList.printAllNews(query);
+                    processRunning = false;
+                }
                 case 4 -> {
                     processRunning = true;
                     System.out.println("\nSelectează un topic pentru colectarea știrilor:");
@@ -294,16 +314,14 @@ public class Client {
 
                         List<News> fetchedNews = SerpApiIntegration.fetchNews(query, numResults);
                         for (News news : fetchedNews) {
-                            newsList.addNews(news);
                             publish(query, news);
                         }
 
                         System.out.println("\n| Știri colectate cu succes!");
-                        newsList.printAllNews();
-                        processRunning = false;
                     } else {
                         System.out.println("\n| Alegere invalidă! Reîncercați.");
                     }
+                    processRunning = false;
                 }
                 case 5 -> {
                     disconnect();
