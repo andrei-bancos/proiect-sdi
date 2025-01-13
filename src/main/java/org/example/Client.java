@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -205,7 +206,8 @@ public class Client {
             System.out.println("1. Abonare la topic");
             System.out.println("2. Publicare stire noua");
             System.out.println("3. Vizualizare stiri primite");
-            System.out.println("4. Exit");
+            System.out.println("4. Colectare știri din SerpAPI");
+            System.out.println("5. Exit");
             System.out.print("Alege o optiune: ");
             int choice = scanner.nextInt();
             scanner.nextLine();
@@ -267,6 +269,43 @@ public class Client {
                 }
                 case 3 -> newsList.printAllNews();
                 case 4 -> {
+                    processRunning = true;
+                    System.out.println("\nSelectează un topic pentru colectarea știrilor:");
+                    System.out.println("1. " + Topics.BLOCKCHAIN);
+                    System.out.println("2. " + Topics.AI);
+                    System.out.println("3. " + Topics.METAVERSE);
+                    System.out.println("4. " + Topics.AUTONOMOUS_CARS);
+                    System.out.print("Alegerea ta: ");
+                    int topicChoice = scanner.nextInt();
+                    scanner.nextLine();
+
+                    String query = switch (topicChoice) {
+                        case 1 -> Topics.BLOCKCHAIN;
+                        case 2 -> Topics.AI;
+                        case 3 -> Topics.METAVERSE;
+                        case 4 -> Topics.AUTONOMOUS_CARS;
+                        default -> null;
+                    };
+
+                    if (query != null) {
+                        System.out.print("Introduceți numărul de știri dorit: ");
+                        int numResults = scanner.nextInt();
+                        scanner.nextLine();
+
+                        List<News> fetchedNews = SerpApiIntegration.fetchNews(query, numResults);
+                        for (News news : fetchedNews) {
+                            newsList.addNews(news);
+                            publish(query, news);
+                        }
+
+                        System.out.println("\n| Știri colectate cu succes!");
+                        newsList.printAllNews();
+                        processRunning = false;
+                    } else {
+                        System.out.println("\n| Alegere invalidă! Reîncercați.");
+                    }
+                }
+                case 5 -> {
                     disconnect();
                     System.exit(0);
                 }
