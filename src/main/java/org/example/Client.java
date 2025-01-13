@@ -10,7 +10,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.Scanner;
+import java.util.Set;
 
 public class Client {
     private String clientId;
@@ -21,6 +23,7 @@ public class Client {
     private boolean isConnected = false;
     private boolean processRunning = false;
     private Broker broker; // Referință la broker
+    private Set<String> subscribedTopics = new HashSet<>();
     private static final String LOG_FILE = "client_log.txt";
 
     public Client(String clientId, String brokerUrl, Broker broker) {
@@ -37,18 +40,19 @@ public class Client {
         try {
             mqtt.setHost(brokerUrl);
             mqtt.setClientId(clientId);
+            mqtt.setCleanSession(true);
             this.connection = mqtt.callbackConnection();
 
             this.connection.listener(new Listener() {
                 @Override
                 public void onConnected() {
-                    System.out.println(clientId + " conectat.");
+                    System.out.println("\n| " + clientId + " conectat.");
                     logToFile(clientId + " s-a conectat la broker.");
                 }
 
                 @Override
                 public void onDisconnected() {
-                    System.out.println(clientId + " deconectat.");
+                    System.out.println("\n| " + clientId + " deconectat.");
                     logToFile(clientId + " s-a deconectat de la broker.");
                     reconnect();
                 }
@@ -68,7 +72,7 @@ public class Client {
 
                 @Override
                 public void onFailure(Throwable value) {
-                    System.out.println(clientId + " conexiune esuata: " + value.getMessage());
+                    System.out.println("\n| " + clientId + " conexiune esuata: " + value.getMessage());
                     logToFile(clientId + " conexiune esuata: " + value.getMessage());
                     reconnect();
                 }
@@ -77,7 +81,7 @@ public class Client {
             this.connection.connect(new Callback<Void>() {
                 @Override
                 public void onSuccess(Void value) {
-                    System.out.println(clientId + " conectat la broker.");
+                    System.out.println("\n| " + clientId + " conectat la broker.");
                     isConnected = true;
                     logToFile(clientId + " s-a conectat la broker cu succes.");
 
@@ -88,7 +92,7 @@ public class Client {
 
                 @Override
                 public void onFailure(Throwable value) {
-                    System.out.println(clientId + " eroare la conectare: " + value.getMessage());
+                    System.out.println("\n| " + clientId + " eroare la conectare: " + value.getMessage());
                     logToFile(clientId + " eroare la conectare: " + value.getMessage());
                     reconnect();
                 }
@@ -99,18 +103,26 @@ public class Client {
     }
 
     private void reconnect() {
-        synchronized (this) {
-            isConnected = false;
+        isConnected = false;
+        synchronized (Client.this) {
+            Client.this.notifyAll();
         }
+
         String nextBrokerUrl = broker.getNextBrokerUrl();
-        System.out.println(clientId + " reconectare la: " + nextBrokerUrl);
+        System.out.println("\n| " + clientId + " reconectare la: " + nextBrokerUrl);
         setupConnection(nextBrokerUrl);
+
+        for (String topic : subscribedTopics) {
+            subscribe(topic);
+        }
     }
 
     public void subscribe(String topic) {
-        this.connection.subscribe(new Topic[]{new Topic(topic, QoS.AT_LEAST_ONCE)}, new Callback<byte[]>() {
+        this.connection.subscribe(new Topic[]{new Topic(topic, QoS.EXACTLY_ONCE)}, new Callback<byte[]>() {
             @Override
             public void onSuccess(byte[] value) {
+                subscribedTopics.add(topic);
+
                 System.out.println("\n|");
                 System.out.println("| " + clientId + " abonat la topic: " + topic);
                 System.out.println("|\n");
@@ -125,7 +137,7 @@ public class Client {
 
             @Override
             public void onFailure(Throwable value) {
-                System.out.println(clientId + " esuare la abonare: " + value.getMessage());
+                System.out.println("\n| " + clientId + " esuare la abonare: " + value.getMessage());
                 logToFile(clientId + " eroare la abonare la topic " + topic + ": " + value.getMessage());
 
                 processRunning = false;
@@ -138,7 +150,7 @@ public class Client {
 
     public void publish(String topic, News news) {
         String message = gson.toJson(news);
-        this.connection.publish(topic, message.getBytes(), QoS.AT_LEAST_ONCE, false, new Callback<Void>() {
+        this.connection.publish(topic, message.getBytes(), QoS.EXACTLY_ONCE, false, new Callback<Void>() {
             @Override
             public void onSuccess(Void value) {
                 System.out.println("\n|");
@@ -155,7 +167,7 @@ public class Client {
 
             @Override
             public void onFailure(Throwable value) {
-                System.out.println(clientId + " eroare la publicare: " + value.getMessage());
+                System.out.println("\n| " + clientId + " eroare la publicare: " + value.getMessage());
                 logToFile(clientId + " eroare la publicare pe topic " + topic + ": " + value.getMessage());
 
                 processRunning = false;
@@ -188,6 +200,7 @@ public class Client {
                     }
                 }
             }
+
             System.out.println("\nOptiuni:");
             System.out.println("1. Abonare la topic");
             System.out.println("2. Publicare stire noua");
@@ -207,7 +220,7 @@ public class Client {
                     System.out.println("4. " + Topics.AUTONOMOUS_CARS);
                     System.out.print("Alegerea ta: ");
                     int topicChoice = scanner.nextInt();
-                    scanner.nextLine(); // Consumă newline
+                    scanner.nextLine();
 
                     String topic = switch (topicChoice) {
                         case 1 -> Topics.BLOCKCHAIN;
@@ -249,7 +262,7 @@ public class Client {
                         String content = scanner.nextLine();
                         publish(topic, new News(title, content, topic));
                     } else {
-                        System.out.println("Alegere invalidă!");
+                        System.out.println("\n| Alegere invalidă!");
                     }
                 }
                 case 3 -> newsList.printAllNews();
@@ -257,7 +270,7 @@ public class Client {
                     disconnect();
                     System.exit(0);
                 }
-                default -> System.out.println("Optiuni invalide. Reincearca");
+                default -> System.out.println("\n| Optiuni invalide. Reincearca");
             }
         }
     }
@@ -268,7 +281,7 @@ public class Client {
             writer.write(timestamp + " - " + message);
             writer.newLine();
         } catch (IOException e) {
-            System.err.println("Eroare la scrierea în fișierul de log: " + e.getMessage());
+            System.err.println("\n| Eroare la scrierea în fișierul de log: " + e.getMessage());
         }
     }
 
@@ -276,12 +289,12 @@ public class Client {
         this.connection.disconnect(new Callback<Void>() {
             @Override
             public void onSuccess(Void value) {
-                System.out.println(clientId + " deconectat.");
+                System.out.println("\n| " + clientId + " deconectat.");
             }
 
             @Override
             public void onFailure(Throwable value) {
-                System.out.println(clientId + " eroare la deconectare: " + value.getMessage());
+                System.out.println("\n| " + clientId + " eroare la deconectare: " + value.getMessage());
             }
         });
     }

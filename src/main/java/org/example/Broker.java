@@ -5,8 +5,7 @@ import java.util.List;
 public class Broker {
     private List<String> brokerUrls = List.of(
             "tcp://localhost:1883",
-            "tcp://localhost:1884",
-            "tcp://localhost:1885"
+            "tcp://localhost:1884"
     );
     private int currentBrokerIndex = 0;
 
