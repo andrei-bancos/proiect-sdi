@@ -206,8 +206,12 @@ public class Client {
             System.out.println("1. Abonare la topic");
             System.out.println("2. Publicare stire noua");
             System.out.println("3. Vizualizare stiri primite");
-            System.out.println("4. Colectare știri din SerpAPI");
-            System.out.println("5. Exit");
+            System.out.println("4. Vizualizare detalii stire");
+            System.out.println("5. Ștergere știre");
+            System.out.println("6. Colectare știri din SerpAPI");
+            System.out.println("7. Exit");
+
+
             System.out.print("Alege o optiune: ");
             int choice = scanner.nextInt();
             scanner.nextLine();
@@ -290,6 +294,24 @@ public class Client {
                 }
                 case 4 -> {
                     processRunning = true;
+                    System.out.print("Introdu id-ul știrii:");
+                    String myStringId = scanner.next();
+                    int id = Integer.parseInt(myStringId);
+                    newsList.printNewsWithId(id);
+                    processRunning = false;
+
+                }
+                case 5 -> {
+                    processRunning = true;
+                    System.out.println("Ștergere știre pe baza ID-ului");
+                    System.out.print("\nIntroduceți ID-ul știrii: ");
+                    int id = scanner.nextInt();
+                    scanner.nextLine();
+                    newsList.deleteNewsById(id);
+                    processRunning = false;
+                }
+                case 6 -> {
+                    processRunning = true;
                     System.out.println("\nSelectează un topic pentru colectarea știrilor:");
                     System.out.println("1. " + Topics.BLOCKCHAIN);
                     System.out.println("2. " + Topics.AI);
@@ -323,11 +345,12 @@ public class Client {
                     }
                     processRunning = false;
                 }
-                case 5 -> {
+                case 7 -> {
                     disconnect();
                     System.exit(0);
                 }
                 default -> System.out.println("\n| Optiuni invalide. Reincearca");
+
             }
         }
     }
