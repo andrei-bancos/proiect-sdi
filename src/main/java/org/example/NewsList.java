@@ -1,8 +1,8 @@
 package org.example;
 
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class NewsList {
     private List<News> newsList;
@@ -21,7 +21,7 @@ public class NewsList {
 
     public void printAllNews(String topic) {
         System.out.println("\n|");
-        System.out.println("| Listă știri:");
+        System.out.println("| Listă știri - " + topic);
         for (News news : newsList) {
             if(news.getTopic().equals(topic)) {
                 System.out.println("| " + news);
@@ -29,20 +29,33 @@ public class NewsList {
         }
         System.out.println("|\n");
     }
-    public void printNewsWithId( int id) {
+
+    public void printAllNews() {
+        System.out.println("\n|");
+        System.out.println("| Listă știri:");
         for (News news : newsList) {
-            if( news.getId() == id){
-                System.out.println("\n|");
+            System.out.println("| " + news);
+        }
+        System.out.println("|\n");
+    }
+
+    public void printNewsWithId( int id) {
+        Optional<News> newsOptional = newsList.stream()
+                .filter(news -> news.getId() == id)
+                .findAny();
+
+        if (newsOptional.isPresent()) {
+            System.out.println("\n|");
                 System.out.println("| Id: " + id);
-                System.out.println("| Titlu: "+news.getTitle());
-                System.out.println("| Topic: " + news.getTopic());
-                System.out.println("| Continut: " + news.getContent());
-                System.out.println("\n|");
-                break;
-            } else
-                System.out.println("Nu există nici o știre cu id-ul:"+ id);
+                System.out.println("| Titlu: " + newsOptional.get().getTitle());
+                System.out.println("| Topic: " + newsOptional.get().getTopic());
+                System.out.println("| Continut: " + newsOptional.get().getContent());
+                System.out.println("|\n");
+        } else {
+            System.out.println("Nu s-a găsit nicio știre cu acest ID.");
         }
     }
+
     public void deleteNewsById(int id) {
         boolean isDeleted = newsList.removeIf(news -> news.getId() == id);
 
@@ -52,6 +65,4 @@ public class NewsList {
             System.out.println("\n| Nu s-a găsit nicio știre cu ID-ul " + id + ".");
         }
     }
-
-
 }

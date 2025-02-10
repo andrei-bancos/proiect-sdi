@@ -10,10 +10,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 public class Client {
     private String clientId;
@@ -278,6 +275,7 @@ public class Client {
                     System.out.println("2. " + Topics.AI);
                     System.out.println("3. " + Topics.METAVERSE);
                     System.out.println("4. " + Topics.AUTONOMOUS_CARS);
+                    System.out.println("5. Vizualizează toate stirile primite.");
                     System.out.print("Alegerea ta: ");
                     int topicChoice = scanner.nextInt();
                     scanner.nextLine();
@@ -287,9 +285,16 @@ public class Client {
                         case 2 -> Topics.AI;
                         case 3 -> Topics.METAVERSE;
                         case 4 -> Topics.AUTONOMOUS_CARS;
+                        case 5 -> "ALL";
                         default -> null;
                     };
-                    newsList.printAllNews(query);
+
+                    if(Objects.equals(query, "ALL")) {
+                        newsList.printAllNews();
+                    } else {
+                        newsList.printAllNews(query);
+                    }
+
                     processRunning = false;
                 }
                 case 4 -> {
