@@ -285,7 +285,8 @@ public class Client {
             System.out.println("4. Vizualizare detalii stire");
             System.out.println("5. Ștergere știre");
             System.out.println("6. Colectare știri din SerpAPI");
-            System.out.println("7. Exit");
+            System.out.println("7. Dezabonare topic");
+            System.out.println("8. Exit");
 
 
             System.out.print("Alege o optiune: ");
