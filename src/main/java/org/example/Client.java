@@ -221,7 +221,38 @@ public class Client {
             }
         });
     }
+    public void unsubscribe(String topic) {
+        // Convertim String-ul în UTF8Buffer
+        UTF8Buffer[] topics = new UTF8Buffer[]{new UTF8Buffer(topic)};
 
+        this.connection.unsubscribe(topics, new Callback<Void>() {
+            @Override
+            public void onSuccess(Void value) {
+                subscribedTopics.remove(topic);
+                System.out.println("\n|");
+                System.out.println("| " + clientId + " dezabonat de la topic: " + topic);
+                System.out.println("|\n");
+
+                logToFile(clientId + " s-a dezabonat de la topic: " + topic);
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable value) {
+                System.out.println("\n| " + clientId + " eroare la dezabonare: " + value.getMessage());
+                logToFile(clientId + " eroare la dezabonare de la topic " + topic + ": " + value.getMessage());
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
+            }
+        });
+    }
 
 
     public void runInteractiveConsole() {
@@ -402,6 +433,31 @@ public class Client {
                     processRunning = false;
                 }
                 case 7 -> {
+                    processRunning = true;
+                    System.out.println("\nSelectează un topic pentru dezabonare:");
+                    System.out.println("1. " + Topics.BLOCKCHAIN);
+                    System.out.println("2. " + Topics.AI);
+                    System.out.println("3. " + Topics.METAVERSE);
+                    System.out.println("4. " + Topics.AUTONOMOUS_CARS);
+                    System.out.print("Alegerea ta: ");
+                    int topicChoice = scanner.nextInt();
+                    scanner.nextLine();
+
+                    String topic = switch (topicChoice) {
+                        case 1 -> Topics.BLOCKCHAIN;
+                        case 2 -> Topics.AI;
+                        case 3 -> Topics.METAVERSE;
+                        case 4 -> Topics.AUTONOMOUS_CARS;
+                        default -> null;
+                    };
+
+                    if (topic != null) {
+                        unsubscribe(topic);
+                    } else {
+                        System.out.println("\n| Alegere invalidă!");
+                    }
+                }
+                case 8 -> {
                     disconnect();
                     System.exit(0);
                 }
