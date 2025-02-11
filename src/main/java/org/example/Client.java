@@ -58,15 +58,23 @@ public class Client {
                 @Override
                 public void onPublish(UTF8Buffer topic, Buffer payload, Runnable ack) {
                     String message = new String(payload.toByteArray());
-                    News news = gson.fromJson(message, News.class);
-                    newsList.addNews(news);
-                    System.out.println("\n|");
-                    System.out.println("| Stire primită de la topicul " + topic + ": " + news);
-                    System.out.println("|\n");
-                    logToFile(clientId + " a primit stire de la topicul " + topic + ": " + news);
+
+                    if (topic.toString().equals("delete_news")) {
+                        String id = message.split(":")[1];
+                        newsList.deleteNewsById(id);
+                        System.out.println("\n| Știrea cu ID " + id + " a fost ștearsă pe acest client.");
+                        logToFile(clientId + " a șters știrea cu ID " + id);
+                    } else {
+                        News news = gson.fromJson(message, News.class);
+                        newsList.addNews(news);
+                        System.out.println("\n| Stire primită de la topicul " + topic + ": " + news);
+                        logToFile(clientId + " a primit stire de la topicul " + topic + ": " + news);
+                    }
 
                     ack.run();
                 }
+
+
 
                 @Override
                 public void onFailure(Throwable value) {
@@ -83,6 +91,19 @@ public class Client {
                     isConnected = true;
                     logToFile(clientId + " s-a conectat la broker cu succes.");
 
+                    // Toți clienții se abonează la topicul de ștergere
+                    connection.subscribe(new Topic[]{new Topic("delete_news", QoS.EXACTLY_ONCE)}, new Callback<byte[]>() {
+                        @Override
+                        public void onSuccess(byte[] value) {
+                            System.out.println("\n| " + clientId + " s-a abonat la topicul de ștergere.");
+                        }
+
+                        @Override
+                        public void onFailure(Throwable value) {
+                            System.out.println("\n| " + clientId + " eroare la abonarea la topicul de ștergere: " + value.getMessage());
+                        }
+                    });
+
                     synchronized (Client.this) {
                         Client.this.notifyAll();
                     }
@@ -95,6 +116,7 @@ public class Client {
                     reconnect();
                 }
             });
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -175,6 +197,32 @@ public class Client {
             }
         });
     }
+    public void deleteNewsById(String id) {
+        String message = "DELETE_NEWS:" + id;
+        this.connection.publish("delete_news", message.getBytes(), QoS.EXACTLY_ONCE, false, new Callback<Void>() {
+            @Override
+            public void onSuccess(Void value) {
+                System.out.println("\n| Mesaj de ștergere a știrii cu ID " + id + " trimis.");
+                logToFile(clientId + " a trimis comanda pentru ștergerea știrii cu ID " + id);
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable value) {
+                System.out.println("\n| Eroare la trimiterea comenzii de ștergere: " + value.getMessage());
+                logToFile(clientId + " eroare la trimiterea comenzii de ștergere pentru ID " + id + ": " + value.getMessage());
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
+            }
+        });
+    }
+
+
 
     public void runInteractiveConsole() {
         synchronized (this) {
@@ -306,13 +354,12 @@ public class Client {
                 }
                 case 5 -> {
                     processRunning = true;
-                    System.out.println("Ștergere știre pe baza ID-ului");
+                    System.out.println("\nȘtergere știre pe baza ID-ului pentru toți clienții.");
                     System.out.print("\nIntroduceți ID-ul știrii: ");
-                    String id = scanner.next();
-                    scanner.nextLine();
-                    newsList.deleteNewsById(id);
-                    processRunning = false;
+                    String id = scanner.nextLine();
+                    deleteNewsById(id);
                 }
+
                 case 6 -> {
                     processRunning = true;
                     System.out.println("\nSelectează un topic pentru colectarea știrilor:");
