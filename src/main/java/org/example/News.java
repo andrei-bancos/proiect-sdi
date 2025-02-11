@@ -1,8 +1,9 @@
 package org.example;
 
+import java.util.UUID;
+
 public class News {
-    private int id;
-    private static int idCounter = 0;
+    private String id;
     private String title;
     private String content;
     private String topic;
@@ -10,7 +11,7 @@ public class News {
 
 
     public News(String title, String content, String topic) {
-        this.id = ++idCounter;
+        this.id = UUID.randomUUID().toString();
         this.title = title;
         this.content = content;
         this.topic = topic;
@@ -27,9 +28,10 @@ public class News {
     public String getTopic() {
         return topic;
     }
-    public int getId() { return id; }
 
-
+    public String getId() {
+        return id;
+    }
 
     @Override
     public String toString() {

@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SerpApiIntegration {
-    private static final String API_KEY = "9f6b32b3cbe268a221d1afbae76ed92158d24660cbe451a2e83785d8f86b678b"; // Înlocuiește cu cheia ta SerpAPI
+    private static final String API_KEY = "api_key";
 
     public static List<News> fetchNews(String query, int maxResults) {
         List<News> newsList = new ArrayList<>();

@@ -2,6 +2,7 @@ package org.example;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class NewsList {
@@ -20,8 +21,11 @@ public class NewsList {
     }
 
     public void printAllNews(String topic) {
+        long countNewsPerTopic = newsList.stream().filter(news -> Objects.equals(news.getTopic(), topic)).count();
+
         System.out.println("\n|");
-        System.out.println("| Listă știri - " + topic);
+        System.out.println("| Listă știri - " + topic + " [ " + countNewsPerTopic + " ]");
+
         for (News news : newsList) {
             if(news.getTopic().equals(topic)) {
                 System.out.println("| " + news);
@@ -32,16 +36,16 @@ public class NewsList {
 
     public void printAllNews() {
         System.out.println("\n|");
-        System.out.println("| Listă știri:");
+        System.out.println("| Listă știri [ " + newsList.size() +" ]");
         for (News news : newsList) {
             System.out.println("| " + news);
         }
         System.out.println("|\n");
     }
 
-    public void printNewsWithId( int id) {
+    public void printNewsWithId(String id) {
         Optional<News> newsOptional = newsList.stream()
-                .filter(news -> news.getId() == id)
+                .filter(news -> Objects.equals(news.getId(), id))
                 .findAny();
 
         if (newsOptional.isPresent()) {
@@ -56,8 +60,8 @@ public class NewsList {
         }
     }
 
-    public void deleteNewsById(int id) {
-        boolean isDeleted = newsList.removeIf(news -> news.getId() == id);
+    public void deleteNewsById(String id) {
+        boolean isDeleted = newsList.removeIf(news -> Objects.equals(news.getId(), id));
 
         if (isDeleted) {
             System.out.println("\n| Știrea cu ID-ul " + id + " a fost ștearsă.");

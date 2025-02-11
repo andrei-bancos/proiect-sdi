@@ -301,16 +301,14 @@ public class Client {
                     processRunning = true;
                     System.out.print("Introdu id-ul știrii:");
                     String myStringId = scanner.next();
-                    int id = Integer.parseInt(myStringId);
-                    newsList.printNewsWithId(id);
+                    newsList.printNewsWithId(myStringId);
                     processRunning = false;
-
                 }
                 case 5 -> {
                     processRunning = true;
                     System.out.println("Ștergere știre pe baza ID-ului");
                     System.out.print("\nIntroduceți ID-ul știrii: ");
-                    int id = scanner.nextInt();
+                    String id = scanner.next();
                     scanner.nextLine();
                     newsList.deleteNewsById(id);
                     processRunning = false;
@@ -342,6 +340,12 @@ public class Client {
                         List<News> fetchedNews = SerpApiIntegration.fetchNews(query, numResults);
                         for (News news : fetchedNews) {
                             publish(query, news);
+
+                            try {
+                                Thread.sleep(300);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                         }
 
                         System.out.println("\n| Știri colectate cu succes!");
