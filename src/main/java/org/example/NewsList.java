@@ -13,8 +13,19 @@ public class NewsList {
     }
 
     public void addNews(News news) {
-        newsList.add(news);
+        boolean exists = newsList.stream()
+                .anyMatch(existingNews -> existingNews.getTitle().equals(news.getTitle())
+                        && existingNews.getContent().equals(news.getContent())
+                        && existingNews.getTopic().equals(news.getTopic())); // Verificare și pe topic
+
+        if (!exists) {
+            newsList.add(news);
+        } else {
+            System.out.println("\n| Știrea \"" + news.getTitle() + "\" din topicul \"" + news.getTopic() + "\" este deja în listă și nu va fi adăugată din nou.");
+        }
     }
+
+
 
     public List<News> getNewsList() {
         return newsList;
