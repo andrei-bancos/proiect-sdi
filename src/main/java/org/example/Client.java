@@ -200,6 +200,21 @@ public class Client {
     }
     // Metodă pentru publicarea unei știri pe un topic
     public void publish(String topic, News news) {
+        if (newsList.getNewsList().stream().anyMatch(existingNews ->
+                existingNews.getTitle().equals(news.getTitle()) &&
+                        existingNews.getContent().equals(news.getContent()) &&
+                        existingNews.getTopic().equals(news.getTopic()))) {
+
+            System.out.println("\n| Știrea \"" + news.getTitle() + "\" din topicul \"" + news.getTopic() + "\" există deja și nu va fi publicată.");
+
+            processRunning = false;
+            synchronized (Client.this) {
+                Client.this.notifyAll();
+            }
+
+            return;
+        }
+
         String message = gson.toJson(news);
         this.connection.publish(topic, message.getBytes(), QoS.EXACTLY_ONCE, false, new Callback<Void>() {
             @Override

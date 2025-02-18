@@ -5,9 +5,9 @@ import java.util.List;
 public class Broker {
     // Lista URL-urilor de brokeri disponibili
     private List<String> brokerUrls = List.of(
-            "tcp://192.168.1.10:1883",
-            "tcp://192.168.1.10:1884",
-            "tcp://192.168.1.10:1885"
+            "tcp://localhost:1883",
+            "tcp://localhost:1884",
+            "tcp://localhost:1885"
     );
     private int currentBrokerIndex = 0;
 
