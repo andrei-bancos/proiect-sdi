@@ -8,10 +8,8 @@ public class News {
     private String content;
     private String topic;
 
-
-
     public News(String title, String content, String topic) {
-        this.id = UUID.randomUUID().toString();
+        this.id = UUID.randomUUID().toString();// Generare ID unic pentru știre
         this.title = title;
         this.content = content;
         this.topic = topic;

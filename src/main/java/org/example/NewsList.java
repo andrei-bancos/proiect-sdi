@@ -11,7 +11,7 @@ public class NewsList {
     public NewsList() {
         this.newsList = new ArrayList<>();
     }
-
+    // Metoda pentru adăugarea unei știri noi în listă evitând duplicatele
     public void addNews(News news) {
         boolean exists = newsList.stream()
                 .anyMatch(existingNews -> existingNews.getTitle().equals(news.getTitle())
@@ -30,7 +30,7 @@ public class NewsList {
     public List<News> getNewsList() {
         return newsList;
     }
-
+    // Metoda pentru afișarea tuturor știrilor dintr-un anumit topic
     public void printAllNews(String topic) {
         long countNewsPerTopic = newsList.stream().filter(news -> Objects.equals(news.getTopic(), topic)).count();
 
@@ -44,7 +44,7 @@ public class NewsList {
         }
         System.out.println("|\n");
     }
-
+    // Metoda pentru afișarea tuturor știrilor din listă
     public void printAllNews() {
         System.out.println("\n|");
         System.out.println("| Listă știri [ " + newsList.size() +" ]");
@@ -53,7 +53,7 @@ public class NewsList {
         }
         System.out.println("|\n");
     }
-
+    // Metoda pentru afișarea unei știri după ID-ul său
     public void printNewsWithId(String id) {
         Optional<News> newsOptional = newsList.stream()
                 .filter(news -> Objects.equals(news.getId(), id))
@@ -70,7 +70,7 @@ public class NewsList {
             System.out.println("Nu s-a găsit nicio știre cu acest ID.");
         }
     }
-
+    // Metodă pentru ștergerea unei știri din listă pe baza ID-ului
     public void deleteNewsById(String id) {
         boolean isDeleted = newsList.removeIf(news -> Objects.equals(news.getId(), id));
 

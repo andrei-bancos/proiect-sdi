@@ -32,7 +32,7 @@ public class Client {
 
         setupConnection(brokerUrl);
     }
-
+    //Inițializare conexiune MQTT la broker
     private void setupConnection(String brokerUrl) {
         mqtt = new MQTT();
         try {
@@ -40,7 +40,7 @@ public class Client {
             mqtt.setClientId(clientId);
             mqtt.setCleanSession(true);
             this.connection = mqtt.callbackConnection();
-
+            //// Setare listener pentru a gestiona evenimentele de conexiune și mesaje
             this.connection.listener(new Listener() {
                 @Override
                 public void onConnected() {
@@ -52,13 +52,13 @@ public class Client {
                 public void onDisconnected() {
                     System.out.println("\n| " + clientId + " deconectat.");
                     logToFile(clientId + " s-a deconectat de la broker.");
-                    reconnect();
+                    reconnect();// Încercăm reconectarea
                 }
 
                 @Override
                 public void onPublish(UTF8Buffer topic, Buffer payload, Runnable ack) {
                     String message = new String(payload.toByteArray());
-
+                    // Gestionăm mesajele primite în funcție de topic
                     if (topic.toString().equals("delete_news")) {
                         String id = message.split(":")[1];
                         newsList.deleteNewsById(id);
@@ -73,8 +73,6 @@ public class Client {
 
                     ack.run();
                 }
-
-
 
                 @Override
                 public void onFailure(Throwable value) {
@@ -121,7 +119,7 @@ public class Client {
             e.printStackTrace();
         }
     }
-
+    // Încercare reconectare la alt broker
     private void reconnect() {
         isConnected = false;
         synchronized (Client.this) {
@@ -136,7 +134,7 @@ public class Client {
             subscribe(topic);
         }
     }
-
+    // Metodă pentru abonare la un topic
     public void subscribe(String topic) {
         this.connection.subscribe(new Topic[]{new Topic(topic, QoS.EXACTLY_ONCE)}, new Callback<byte[]>() {
             @Override
@@ -167,7 +165,40 @@ public class Client {
             }
         });
     }
+    // Metodă pentru dezabonare de la un topic
+    public void unsubscribe(String topic) {
+        // Convertim String-ul în UTF8Buffer
+        UTF8Buffer[] topics = new UTF8Buffer[]{new UTF8Buffer(topic)};
 
+        this.connection.unsubscribe(topics, new Callback<Void>() {
+            @Override
+            public void onSuccess(Void value) {
+                subscribedTopics.remove(topic);
+                System.out.println("\n|");
+                System.out.println("| " + clientId + " dezabonat de la topic: " + topic);
+                System.out.println("|\n");
+
+                logToFile(clientId + " s-a dezabonat de la topic: " + topic);
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable value) {
+                System.out.println("\n| " + clientId + " eroare la dezabonare: " + value.getMessage());
+                logToFile(clientId + " eroare la dezabonare de la topic " + topic + ": " + value.getMessage());
+
+                processRunning = false;
+                synchronized (Client.this) {
+                    Client.this.notifyAll();
+                }
+            }
+        });
+    }
+    // Metodă pentru publicarea unei știri pe un topic
     public void publish(String topic, News news) {
         String message = gson.toJson(news);
         this.connection.publish(topic, message.getBytes(), QoS.EXACTLY_ONCE, false, new Callback<Void>() {
@@ -221,38 +252,19 @@ public class Client {
             }
         });
     }
-    public void unsubscribe(String topic) {
-        // Convertim String-ul în UTF8Buffer
-        UTF8Buffer[] topics = new UTF8Buffer[]{new UTF8Buffer(topic)};
 
-        this.connection.unsubscribe(topics, new Callback<Void>() {
-            @Override
-            public void onSuccess(Void value) {
-                subscribedTopics.remove(topic);
-                System.out.println("\n|");
-                System.out.println("| " + clientId + " dezabonat de la topic: " + topic);
-                System.out.println("|\n");
-
-                logToFile(clientId + " s-a dezabonat de la topic: " + topic);
-
-                processRunning = false;
-                synchronized (Client.this) {
-                    Client.this.notifyAll();
-                }
+    //Metodă pentru afișarea topicurilor la care clientul este abonat.
+    public void printSubscribedTopics() {
+        if (subscribedTopics.isEmpty()) {
+            System.out.println("\n| Nu ești abonat la niciun topic.");
+        } else {
+            System.out.println("\n| Topicuri la care ești abonat:");
+            for (String topic : subscribedTopics) {
+                System.out.println("| - " + topic);
             }
-
-            @Override
-            public void onFailure(Throwable value) {
-                System.out.println("\n| " + clientId + " eroare la dezabonare: " + value.getMessage());
-                logToFile(clientId + " eroare la dezabonare de la topic " + topic + ": " + value.getMessage());
-
-                processRunning = false;
-                synchronized (Client.this) {
-                    Client.this.notifyAll();
-                }
-            }
-        });
+        }
     }
+
 
 
     public void runInteractiveConsole() {
@@ -280,13 +292,14 @@ public class Client {
 
             System.out.println("\nOptiuni:");
             System.out.println("1. Abonare la topic");
-            System.out.println("2. Publicare stire noua");
-            System.out.println("3. Vizualizare stiri primite");
-            System.out.println("4. Vizualizare detalii stire");
-            System.out.println("5. Ștergere știre");
-            System.out.println("6. Colectare știri din SerpAPI");
-            System.out.println("7. Dezabonare topic");
-            System.out.println("8. Exit");
+            System.out.println("2. Dezabonare topic");
+            System.out.println("3. Vizualizare topicuri abonate");
+            System.out.println("4. Publicare stire noua");
+            System.out.println("5. Colectare știri din SerpAPI");
+            System.out.println("6. Vizualizare stiri primite");
+            System.out.println("7. Vizualizare detalii stire");
+            System.out.println("8. Ștergere știre");
+            System.out.println("9. Exit");
 
 
             System.out.print("Alege o optiune: ");
@@ -321,6 +334,36 @@ public class Client {
                 }
                 case 2 -> {
                     processRunning = true;
+                    System.out.println("\nSelectează un topic pentru dezabonare:");
+                    System.out.println("1. " + Topics.BLOCKCHAIN);
+                    System.out.println("2. " + Topics.AI);
+                    System.out.println("3. " + Topics.METAVERSE);
+                    System.out.println("4. " + Topics.AUTONOMOUS_CARS);
+                    System.out.print("Alegerea ta: ");
+                    int topicChoice = scanner.nextInt();
+                    scanner.nextLine();
+
+                    String topic = switch (topicChoice) {
+                        case 1 -> Topics.BLOCKCHAIN;
+                        case 2 -> Topics.AI;
+                        case 3 -> Topics.METAVERSE;
+                        case 4 -> Topics.AUTONOMOUS_CARS;
+                        default -> null;
+                    };
+
+                    if (topic != null) {
+                        unsubscribe(topic);
+                    } else {
+                        System.out.println("\n| Alegere invalidă!");
+                    }
+                }
+                case 3 -> {
+                    processRunning = true;
+                    printSubscribedTopics();
+                    processRunning = false;
+                }
+                case 4 -> {
+                    processRunning = true;
                     System.out.println("\nSelectează un topic:");
                     System.out.println("1. " + Topics.BLOCKCHAIN);
                     System.out.println("2. " + Topics.AI);
@@ -348,51 +391,7 @@ public class Client {
                         System.out.println("\n| Alegere invalidă!");
                     }
                 }
-                case 3 -> {
-                    processRunning = true;
-                    System.out.println("\nSelectează un topic pentru vizualizarea știrilor:");
-                    System.out.println("1. " + Topics.BLOCKCHAIN);
-                    System.out.println("2. " + Topics.AI);
-                    System.out.println("3. " + Topics.METAVERSE);
-                    System.out.println("4. " + Topics.AUTONOMOUS_CARS);
-                    System.out.println("5. Vizualizează toate stirile primite.");
-                    System.out.print("Alegerea ta: ");
-                    int topicChoice = scanner.nextInt();
-                    scanner.nextLine();
-
-                    String query = switch (topicChoice) {
-                        case 1 -> Topics.BLOCKCHAIN;
-                        case 2 -> Topics.AI;
-                        case 3 -> Topics.METAVERSE;
-                        case 4 -> Topics.AUTONOMOUS_CARS;
-                        case 5 -> "ALL";
-                        default -> null;
-                    };
-
-                    if(Objects.equals(query, "ALL")) {
-                        newsList.printAllNews();
-                    } else {
-                        newsList.printAllNews(query);
-                    }
-
-                    processRunning = false;
-                }
-                case 4 -> {
-                    processRunning = true;
-                    System.out.print("Introdu id-ul știrii:");
-                    String myStringId = scanner.next();
-                    newsList.printNewsWithId(myStringId);
-                    processRunning = false;
-                }
                 case 5 -> {
-                    processRunning = true;
-                    System.out.println("\nȘtergere știre pe baza ID-ului pentru toți clienții.");
-                    System.out.print("\nIntroduceți ID-ul știrii: ");
-                    String id = scanner.nextLine();
-                    deleteNewsById(id);
-                }
-
-                case 6 -> {
                     processRunning = true;
                     System.out.println("\nSelectează un topic pentru colectarea știrilor:");
                     System.out.println("1. " + Topics.BLOCKCHAIN);
@@ -433,35 +432,57 @@ public class Client {
                     }
                     processRunning = false;
                 }
-                case 7 -> {
+
+                case 6 -> {
                     processRunning = true;
-                    System.out.println("\nSelectează un topic pentru dezabonare:");
+                    System.out.println("\nSelectează un topic pentru vizualizarea știrilor:");
                     System.out.println("1. " + Topics.BLOCKCHAIN);
                     System.out.println("2. " + Topics.AI);
                     System.out.println("3. " + Topics.METAVERSE);
                     System.out.println("4. " + Topics.AUTONOMOUS_CARS);
+                    System.out.println("5. Vizualizează toate stirile primite.");
                     System.out.print("Alegerea ta: ");
                     int topicChoice = scanner.nextInt();
                     scanner.nextLine();
 
-                    String topic = switch (topicChoice) {
+                    String query = switch (topicChoice) {
                         case 1 -> Topics.BLOCKCHAIN;
                         case 2 -> Topics.AI;
                         case 3 -> Topics.METAVERSE;
                         case 4 -> Topics.AUTONOMOUS_CARS;
+                        case 5 -> "ALL";
                         default -> null;
                     };
 
-                    if (topic != null) {
-                        unsubscribe(topic);
+                    if(Objects.equals(query, "ALL")) {
+                        newsList.printAllNews();
                     } else {
-                        System.out.println("\n| Alegere invalidă!");
+                        newsList.printAllNews(query);
                     }
+
+                    processRunning = false;
+                }
+                case 7 -> {
+                    processRunning = true;
+                    System.out.print("Introdu id-ul știrii:");
+                    String myStringId = scanner.next();
+                    newsList.printNewsWithId(myStringId);
+                    processRunning = false;
                 }
                 case 8 -> {
+                    processRunning = true;
+                    System.out.println("\nȘtergere știre pe baza ID-ului pentru toți clienții.");
+                    System.out.print("\nIntroduceți ID-ul știrii: ");
+                    String id = scanner.nextLine();
+                    deleteNewsById(id);
+                }
+
+                case 9 -> {
                     disconnect();
                     System.exit(0);
                 }
+
+
                 default -> System.out.println("\n| Optiuni invalide. Reincearca");
 
             }
